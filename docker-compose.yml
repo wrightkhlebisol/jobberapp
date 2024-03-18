@@ -1,0 +1,32 @@
+version: '3.0'
+
+services:
+  redis-stack:
+    image: redis/redis-stack
+    volumes:
+      - ./docker-volumes/cache:/data  
+    ports:
+        - 6379:6379
+        - 8001:8001
+    restart: always
+  mongodb:
+    image: mongo:latest
+    restart: always
+    ports:
+      - 27012:27017
+    volumes:
+      - ./docker-volumes/data:/data/db
+  mysql:
+    image: mysql:latest
+  postgres:
+    image: postgres:latest
+  rabbitmq:
+    image: rabbitmq:latest
+  elasticsearch:
+    image: elasticsearch
+  kibana:
+    image: kibana
+
+configs:
+  redis-config:
+    file: ./redis.conf
