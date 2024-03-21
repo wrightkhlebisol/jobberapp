@@ -1,4 +1,4 @@
-version: '3.0'
+version: '3.9'
 
 services:
   redis-stack:
@@ -9,23 +9,101 @@ services:
         - 6379:6379
         - 8001:8001
     restart: always
+
   mongodb:
     image: mongo:latest
     restart: always
     ports:
-      - 27012:27017
+      - 27017:27017
     volumes:
       - ./docker-volumes/data:/data/db
+
+  mongo-express:
+    image: mongo-express:latest
+    restart: always
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_SERVER: 'mongodb'
+    depends_on:
+      - mongodb
+
   mysql:
     image: mysql:latest
+    restart: always
+    ports:
+      - 3306:3306
+    volumes:
+      - ./docker-volumes/mysql:/var/lib/mysql
+    environment:
+      MYSQL_USER: jobber
+      MYSQL_PASSWORD: api
+      MYSQL_DATABASE: jobber_auth
+      MYSQL_ROOT_PASSWORD: api
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on:
+      - mysql
+      - postgres
+
   postgres:
     image: postgres:latest
+    restart: always
+    ports:
+      - 5432:5432
+    volumes:
+      - ./docker-volumes/pgsql:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: jobber
+      POSTGRES_PASSWORD: api
+      POSTGRES_DB: jobber_reviews
+
   rabbitmq:
-    image: rabbitmq:latest
+    image: rabbitmq:3.13-management-alpine
+    restart: always
+    ports:
+      # AMQP Protocol port
+      - 5672:5672
+      # Management Port
+      - 15672:15672
+
   elasticsearch:
-    image: elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
+    restart: always
+    ports:
+      - 9200:9200
+    environment:
+      bootstrap.memory_lock: true
+      discovery.type: single-node
+      xpack.security.enabled: false
+      xpack.security.enrollment.enabled: true
+      xpack.security.authc.api_key.enabled: true
+      xpack.monitoring.collection.enabled: true
+    volumes:
+      - ./docker-volumes/elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - elastic
+
   kibana:
-    image: kibana
+    image: docker.elastic.co/kibana/kibana:8.12.2
+    restart: always
+    depends_on:
+      - elasticsearch
+    ports:
+      - 5601:5601
+    environment:
+      - ELASTICSEARCH_HOSTS=["http://elasticsearch:9200"]
+    networks:
+      - elastic
+    volumes:
+      - ./kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+
+networks:
+  elastic:
 
 configs:
   redis-config:
